@@ -24,23 +24,42 @@ contract Bridge is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
 
     mapping(uint32 => uint32) public connextChainIdToDomain;
 
-    function initialize(uint32 _fee, BridgeType[] calldata _bridgeTypes, address[] calldata _bridges)
-        public
-        initializer
-    {
+    function initialize(
+        uint32 _fee, // BPS, i.e. 40 = 0.4%
+        BridgeType[] calldata _bridgeTypes,
+        address[] calldata _bridges
+    ) public initializer {
         __Pausable_init();
         __Ownable2Step_init();
-        if (_fee < 0 || _fee > 100) revert FeeOutOfBounds(_fee);
+        if (_fee > 10000) revert FeeOutOfBounds(_fee);
         fee = _fee;
         if (_bridgeTypes.length != _bridges.length) revert LengthsMustMatch(_bridgeTypes.length, _bridges.length);
         for (uint256 i = 0; i < _bridgeTypes.length; i++) {
             bridges[_bridgeTypes[i]] = _bridges[i];
         }
+
+        uint32[] memory chains = new uint32[](6);
+        chains[0] = 1;
+        chains[1] = 10;
+        chains[2] = 56;
+        chains[3] = 100;
+        chains[4] = 137;
+        chains[5] = 42161;
+
+        uint32[] memory domains = new uint32[](6);
+        domains[0] = 6648936;
+        domains[1] = 1869640809;
+        domains[2] = 6450786;
+        domains[3] = 6778479;
+        domains[4] = 1886350457;
+        domains[5] = 1634886255;
+
+        setDomains(chains, domains);
     }
 
     // ADMIN FUNCTIONS
     function setFee(uint32 _fee) external onlyOwner {
-        if (_fee < 0 || _fee > 100) revert FeeOutOfBounds(_fee);
+        if (_fee < 0 || _fee > 10000) revert FeeOutOfBounds(_fee);
         fee = _fee;
     }
 
@@ -48,10 +67,10 @@ contract Bridge is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
         bridges[_bridgeType] = _bridge;
     }
 
-    function setDomains(uint32[] calldata _connextChainId, uint32[] calldata _domain) external onlyOwner {
-        if (_connextChainId.length != _domain.length) revert LengthsMustMatch(_connextChainId.length, _domain.length);
-        for (uint256 i = 0; i < _connextChainId.length; i++) {
-            connextChainIdToDomain[_connextChainId[i]] = _domain[i];
+    function setDomains(uint32[] memory _chainId, uint32[] memory _connextDomain) public onlyOwner {
+        if (_chainId.length != _connextDomain.length) revert LengthsMustMatch(_chainId.length, _connextDomain.length);
+        for (uint256 i = 0; i < _chainId.length; i++) {
+            connextChainIdToDomain[_chainId[i]] = _connextDomain[i];
         }
     }
 
@@ -70,7 +89,8 @@ contract Bridge is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
         bytes calldata _extraData
     ) external payable whenNotPaused {
         SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(_token), msg.sender, address(this), _amount);
-        uint256 _amountAfterFee = _amount - ((_amount * fee * 1000) / (100 * 1000));
+        uint256 _amountAfterFee = _amount - ((_amount * fee) / (10000));
+        // example: 100 * 40 * 1000 / (10000 * 1000) = .4
 
         if (_bridgeType == BridgeType.Connext) {
             _sendThroughConnext(_token, _recipient, _destinationChainId, _amountAfterFee, _data, _extraData);
