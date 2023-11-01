@@ -1,6 +1,14 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
+const connextAddresses: Record<number, string> = {
+  1: "0x840541b6C760D505C720e4409598f27135F4FD80", // grumpy adapter on mainnet
+  10: "0x8f7492DE823025b4CfaAB1D34c58963F2af5DEDA",
+  56: "0xCd401c10afa37d641d2F594852DA94C700e4F2CE",
+  137: "0x11984dc4465481512eb5b777E44061C158CF2259",
+  42161: "0xEE9deC2712cCE65174B561151701Bf54b99C24C8",
+};
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Get the chain id
   const chainId = +(await hre.getChainId());
@@ -19,7 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const args = [
     50, // fee
     [0], // connext bridge enum
-    ["0x840541b6C760D505C720e4409598f27135F4FD80"], // connext bridge address (grumpy adapter)
+    [connextAddresses[chainId]], // connext bridge address
   ];
 
   // Deploy contract

@@ -36,6 +36,52 @@ const config: HardhatUserConfig = {
         },
       },
     },
+    optimism: {
+      chainId: 10,
+      accounts: [process.env.PRIVATE_KEY!],
+      url: process.env.INFURA_KEY
+        ? `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_KEY}`
+        : "https://optimism.llamarpc.com",
+      verify: {
+        etherscan: {
+          apiKey: process.env.OPTISCAN_API_KEY!,
+        },
+      },
+    },
+    bnb: {
+      chainId: 56,
+      accounts: [process.env.PRIVATE_KEY!],
+      url: "https://bscrpc.com",
+      verify: {
+        etherscan: {
+          apiKey: process.env.BSCSCAN_API_KEY!,
+        },
+      },
+    },
+    polygon: {
+      chainId: 137,
+      accounts: [process.env.PRIVATE_KEY!],
+      url: process.env.INFURA_KEY
+        ? `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_KEY}`
+        : "https://polygon.llamarpc.com",
+      verify: {
+        etherscan: {
+          apiKey: process.env.POLYGONSCAN_API_KEY!,
+        },
+      },
+    },
+    arbitrum: {
+      chainId: 42161,
+      accounts: [process.env.PRIVATE_KEY!],
+      url: process.env.INFURA_KEY
+        ? `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_KEY}`
+        : "https://arbitrum.llamarpc.com",
+      verify: {
+        etherscan: {
+          apiKey: process.env.ARBISCAN_API_KEY!,
+        },
+      },
+    },
   },
 };
 
