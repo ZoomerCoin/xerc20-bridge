@@ -7,9 +7,11 @@ import {Initializable} from "openzeppelin-contracts-upgradeable/contracts/proxy/
 import {SafeERC20Upgradeable} from
     "openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
+import {ReentrancyGuardUpgradeable} from
+    "openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 import {IConnext} from "connext-interfaces/core/IConnext.sol";
 
-contract Bridge is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
+contract Bridge is Initializable, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     error InvalidBridgeType();
     error BridgeContractNotSet(BridgeType _bridgeType);
     error DestinationChainNotSupported(uint32 _destinationChainId);
@@ -31,6 +33,7 @@ contract Bridge is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
     ) public initializer {
         __Pausable_init();
         __Ownable2Step_init();
+        __ReentrancyGuard_init();
         if (_fee > 10000) revert FeeOutOfBounds(_fee);
         fee = _fee;
         if (_bridgeTypes.length != _bridges.length) revert LengthsMustMatch(_bridgeTypes.length, _bridges.length);
@@ -74,7 +77,7 @@ contract Bridge is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
         }
     }
 
-    function withdraw(address _token, address _recipient, uint256 _amount) external onlyOwner {
+    function withdraw(address _token, address _recipient, uint256 _amount) external nonReentrant onlyOwner {
         SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(_token), _recipient, _amount);
     }
 
@@ -108,17 +111,17 @@ contract Bridge is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
         bytes calldata _data,
         bytes calldata _extraData
     ) internal {
-        address _bridge = bridges[BridgeType.Connext];
-        if (_bridge == address(0)) {
+        if (bridges[BridgeType.Connext] == address(0)) {
             revert BridgeContractNotSet(BridgeType.Connext);
         }
-        uint32 _domain = connextChainIdToDomain[_destinationChainId];
-        if (_domain == 0) {
+        if (connextChainIdToDomain[_destinationChainId] == 0) {
             revert DestinationChainNotSupported(_destinationChainId);
         }
         SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(_token), bridges[BridgeType.Connext], _amount);
         (address _delegate, uint256 _slippage) = abi.decode(_extraData, (address, uint256));
-        IConnext(_bridge).xcall{value: msg.value}(_domain, _recipient, _token, _delegate, _amount, _slippage, _data);
+        IConnext(bridges[BridgeType.Connext]).xcall{value: msg.value}(
+            connextChainIdToDomain[_destinationChainId], _recipient, _token, _delegate, _amount, _slippage, _data
+        );
     }
 
     // ============ Upgrade Gap ============
